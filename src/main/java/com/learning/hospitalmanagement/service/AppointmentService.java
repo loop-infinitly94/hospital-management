@@ -96,7 +96,6 @@ public class AppointmentService {
             appointmentSave.setPatientModel(patient);
             appointmentSave.setProviderModel(provider);
             appointmentSave.setStatus(status);
-
             return appointmentSave;
         } else {
             try {
@@ -104,8 +103,9 @@ public class AppointmentService {
                 for (AppointmentModel appointment : appointmentList) {
                     String currentAppointmentStartTime = appointment.getTime();
                     LocalTime currentAppointmentStartTimeParsed = LocalTime.parse(currentAppointmentStartTime, formatter);
+                    LocalTime currentAppointmentEndTimeParsed = currentAppointmentStartTimeParsed.plusMinutes(providerDuration);
                     //check if the appointment date is coinciding with any CONFIRMED appointments
-                    Boolean isInRange = appointmentTimeParsed.isAfter(currentAppointmentStartTimeParsed) && appointmentTimeParsed.isBefore(appointmentDuration);
+                    Boolean isInRange = appointmentTimeParsed.plusMinutes(1).isAfter(currentAppointmentEndTimeParsed) && appointmentTimeParsed.isBefore(currentAppointmentStartTimeParsed);
                     if(isInRange){
                         isSlotAvailable = false;
                         break;
