@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,6 +52,12 @@ public class AppointmentService {
                 .notes(appointmentRequest.getNotes())
                 .build();
         appointmentRepository.save(appointment);
+    }
+
+    public void calculateFreeSlots(ProviderModel provider, List<AppointmentModel> appointmentList, WorkingHours workingHoursForDate){
+        List<String> timeSlots = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+
     }
 
     public AppointmentSave validateAndCreateAppointment(PatientModel patient, Integer providerId, ProviderModel provider, AppointmentRequest appointmentRequest) throws JsonProcessingException {
@@ -89,6 +96,9 @@ public class AppointmentService {
 
         List<AppointmentModel> appointmentList = appointments.get();
         int length = appointmentList.size();
+
+        List<String> timeSlots = new ArrayList<>();
+
         // if no CONFIRMED appointments found for the day
         if (length == 0) {
             AppointmentSave appointmentSave = new AppointmentSave();
@@ -105,28 +115,32 @@ public class AppointmentService {
                     LocalTime currentAppointmentStartTimeParsed = LocalTime.parse(currentAppointmentStartTime, formatter);
                     LocalTime currentAppointmentEndTimeParsed = currentAppointmentStartTimeParsed.plusMinutes(providerDuration);
                     //check if the appointment date is coinciding with any CONFIRMED appointments
-                    Boolean isInRange = appointmentTimeParsed.plusMinutes(1).isAfter(currentAppointmentEndTimeParsed) && appointmentTimeParsed.isBefore(currentAppointmentStartTimeParsed);
-                    if(isInRange){
+                    Boolean isStartTimeInRange = (appointmentTimeParsed.isAfter(currentAppointmentStartTimeParsed) && appointmentTimeParsed.isBefore(currentAppointmentEndTimeParsed));
+                    Boolean isEndTimeInRange = (appointmentDuration.isAfter(currentAppointmentStartTimeParsed) && appointmentDuration.isBefore(currentAppointmentEndTimeParsed)) ;
+//                    Boolean isInRange = appointmentTimeParsed.plusMinutes(1).isAfter(currentAppointmentEndTimeParsed) && appointmentDuration.isBefore(currentAppointmentStartTimeParsed);
+
+                    if(isStartTimeInRange || isEndTimeInRange) {
+                        String timeSlot = currentAppointmentStartTimeParsed.format(formatter) + " - " + currentAppointmentEndTimeParsed.format(formatter);
+                        timeSlots.add(timeSlot);
                         isSlotAvailable = false;
                         break;
                     }
-                    else{
-                        AppointmentSave appointmentSave = new AppointmentSave();
-                        appointmentSave.setAppointmentRequest(appointmentRequest);
-                        appointmentSave.setPatientModel(patient);
-                        appointmentSave.setProviderModel(provider);
-                        appointmentSave.setStatus(status);
-
-                        return appointmentSave;
-                    }
                 }
                 if(!isSlotAvailable){
+//                    calculateFreeSlots()
                     throw new RuntimeException("Slot is already booked");
+                }
+                else{
+                    AppointmentSave appointmentSave = new AppointmentSave();
+                    appointmentSave.setAppointmentRequest(appointmentRequest);
+                    appointmentSave.setPatientModel(patient);
+                    appointmentSave.setProviderModel(provider);
+                    appointmentSave.setStatus(status);
+                    return appointmentSave;
                 }
             } catch (Exception exception) {
                 throw new RuntimeException("Slot is booked");
             }
-            throw new RuntimeException("Slot is booked");
         }
     }
     public void addAppointment(@NotNull AppointmentRequest appointmentRequest) throws JsonProcessingException, ParseException {
