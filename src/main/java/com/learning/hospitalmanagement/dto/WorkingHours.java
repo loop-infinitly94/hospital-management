@@ -1,4 +1,4 @@
-package com.learning.hospitalmanagement.model;
+package com.learning.hospitalmanagement.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;

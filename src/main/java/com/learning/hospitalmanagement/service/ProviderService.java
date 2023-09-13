@@ -1,14 +1,12 @@
 package com.learning.hospitalmanagement.service;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learning.hospitalmanagement.dto.ProviderRequest;
 import com.learning.hospitalmanagement.dto.ProviderResponse;
-import com.learning.hospitalmanagement.model.PatientModel;
 import com.learning.hospitalmanagement.model.ProviderModel;
-import com.learning.hospitalmanagement.model.WorkingHours;
+import com.learning.hospitalmanagement.dto.WorkingHours;
 import com.learning.hospitalmanagement.repository.ProviderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,5 @@
 package com.learning.hospitalmanagement.dto;
 
-import com.learning.hospitalmanagement.model.WorkingHours;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
