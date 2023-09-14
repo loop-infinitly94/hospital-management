@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.learning.hospitalmanagement.dto.AppointmentFreeSlots;
 import com.learning.hospitalmanagement.dto.AppointmentRequest;
 import com.learning.hospitalmanagement.dto.AppointmentResponse;
+import com.learning.hospitalmanagement.exception.SlotNotAvailable;
 import com.learning.hospitalmanagement.model.AppointmentModel;
 import com.learning.hospitalmanagement.service.AppointmentService;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,18 @@ public class AppointmentManagement {
      * POST request
      */
     @PostMapping("/appointment")
-    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<AppointmentFreeSlots>  addAppointment(@RequestBody AppointmentRequest appointmentRequest) throws ParseException, JsonProcessingException {
-        return appointmentService.addAppointment(appointmentRequest);
+        try{
+            return appointmentService.addAppointment(appointmentRequest);
+        }
+        catch (SlotNotAvailable ex){
+            log.info(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        catch (Exception ex){
+            throw new RuntimeException(ex.getMessage());
+        }
+
     }
 
     /**

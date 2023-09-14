@@ -7,6 +7,8 @@ import com.learning.hospitalmanagement.repository.PatientRepository;
 import com.learning.hospitalmanagement.utils.GenderTypes;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -21,10 +23,11 @@ public class PatientService {
     @Autowired
     PatientRepository patientRepository;
 
-    public void postPatient(PatientRequest patientRequest) throws ParseException {
+    public ResponseEntity postPatient(PatientRequest patientRequest) throws ParseException {
         PatientModel patient = buildPatient(patientRequest);
         patientRepository.save(patient);
         log.info("Patient {} is saved", patient.getId());
+        return new ResponseEntity(null, HttpStatus.CREATED);
     }
 
     private PatientModel buildPatient(PatientRequest patientRequest) throws ParseException {

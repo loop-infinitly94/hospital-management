@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learning.hospitalmanagement.dto.*;
+import com.learning.hospitalmanagement.exception.SlotNotAvailable;
 import com.learning.hospitalmanagement.model.AppointmentModel;
 import com.learning.hospitalmanagement.model.PatientModel;
 import com.learning.hospitalmanagement.model.ProviderModel;
@@ -87,7 +88,7 @@ public class AppointmentService {
                 .filter(hours -> hours.date.equals(appointmentDate))
                 .collect(Collectors.toList());
         if (filteredList.size() == 0) {
-            throw new RuntimeException("No working hour found for the date");
+            throw new SlotNotAvailable("No working hour found for the date");
         }
         WorkingHours workingHoursForDate = filteredList.get(0);
         String providerEndTime = workingHoursForDate.end;
@@ -104,7 +105,7 @@ public class AppointmentService {
         //check appointTime + providerDuration > endtime
         Boolean isExceedingTimelimit = appointmentDuration.isAfter(providerEndTimeParsed);
         if (isExceedingTimelimit) {
-            throw new RuntimeException("time exceeded");
+            throw new SlotNotAvailable("time exceeded");
         }
 
         List<AppointmentModel> appointmentList = appointments.get();
@@ -152,7 +153,7 @@ public class AppointmentService {
                 return appointmentSave;
 
             } catch (Exception exception) {
-                throw new RuntimeException("Slot is booked");
+                throw new SlotNotAvailable("Slot is booked");
             }
         }
     }

@@ -29,13 +29,13 @@ public class PatientManagement {
      * POST Patient
      */
     @PostMapping("/patient")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void postPatient(@RequestBody PatientRequest patientRequest){
+    public ResponseEntity postPatient(@RequestBody PatientRequest patientRequest){
         try{
-            patientService.postPatient(patientRequest);
+            return patientService.postPatient(patientRequest);
         }
         catch (Exception e){
             log.error("Something went wrong");
+            throw new RuntimeException("Something went wrong");
         }
     }
 
