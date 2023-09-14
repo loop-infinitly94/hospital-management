@@ -3,13 +3,10 @@ package com.learning.hospitalmanagement.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.learning.hospitalmanagement.dto.AppointmentRequest;
-import com.learning.hospitalmanagement.dto.AppointmentResponse;
-import com.learning.hospitalmanagement.dto.AppointmentSave;
+import com.learning.hospitalmanagement.dto.*;
 import com.learning.hospitalmanagement.model.AppointmentModel;
 import com.learning.hospitalmanagement.model.PatientModel;
 import com.learning.hospitalmanagement.model.ProviderModel;
-import com.learning.hospitalmanagement.dto.WorkingHours;
 import com.learning.hospitalmanagement.repository.AppointmentRepository;
 import com.learning.hospitalmanagement.repository.PatientRepository;
 import com.learning.hospitalmanagement.repository.ProviderRepository;
@@ -17,12 +14,13 @@ import com.learning.hospitalmanagement.utils.AppointmentStatus;
 import jakarta.persistence.EntityNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,10 +52,25 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
-    public void calculateFreeSlots(ProviderModel provider, List<AppointmentModel> appointmentList, WorkingHours workingHoursForDate){
-        List<String> timeSlots = new ArrayList<>();
+    public AppointmentFreeSlots calculateFreeSlots(WorkingHours workingHours, AppointmentFreeSlots slots, Integer providerDuration) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        String providerEndTime = workingHours.end;
+        String providedStartTime = workingHours.start;
+        LocalTime providerStart = LocalTime.parse(providedStartTime, formatter);
+        LocalTime providerEnd = LocalTime.parse(providerEndTime, formatter);
+        AppointmentFreeSlots slotsAvailable = new AppointmentFreeSlots();
 
+        while (providerStart.plusMinutes(providerDuration).isBefore(providerEnd.plusMinutes(providerDuration))) {
+            String startTimeStr = providerStart.format(formatter);
+            String endTimeStr = providerStart.plusMinutes(providerDuration).format(formatter);
+            String timeSlot = startTimeStr + " - " + endTimeStr;
+            if (!slots.getTimeSlots().contains(timeSlot)) {
+                slotsAvailable.addSlots(timeSlot);
+            }
+            providerStart = providerStart.plusMinutes(providerDuration);
+        }
+
+        return slotsAvailable;
     }
 
     public AppointmentSave validateAndCreateAppointment(PatientModel patient, Integer providerId, ProviderModel provider, AppointmentRequest appointmentRequest) throws JsonProcessingException {
@@ -97,7 +110,7 @@ public class AppointmentService {
         List<AppointmentModel> appointmentList = appointments.get();
         int length = appointmentList.size();
 
-        List<String> timeSlots = new ArrayList<>();
+        AppointmentFreeSlots timeSlots = new AppointmentFreeSlots();
 
         // if no CONFIRMED appointments found for the day
         if (length == 0) {
@@ -116,34 +129,35 @@ public class AppointmentService {
                     LocalTime currentAppointmentEndTimeParsed = currentAppointmentStartTimeParsed.plusMinutes(providerDuration);
                     //check if the appointment date is coinciding with any CONFIRMED appointments
                     Boolean isStartTimeInRange = (appointmentTimeParsed.isAfter(currentAppointmentStartTimeParsed) && appointmentTimeParsed.isBefore(currentAppointmentEndTimeParsed));
-                    Boolean isEndTimeInRange = (appointmentDuration.isAfter(currentAppointmentStartTimeParsed) && appointmentDuration.isBefore(currentAppointmentEndTimeParsed)) ;
+                    Boolean isEndTimeInRange = (appointmentDuration.isAfter(currentAppointmentStartTimeParsed) && appointmentDuration.isBefore(currentAppointmentEndTimeParsed));
 //                    Boolean isInRange = appointmentTimeParsed.plusMinutes(1).isAfter(currentAppointmentEndTimeParsed) && appointmentDuration.isBefore(currentAppointmentStartTimeParsed);
 
-                    if(isStartTimeInRange || isEndTimeInRange) {
+                    if (isStartTimeInRange || isEndTimeInRange) {
                         String timeSlot = currentAppointmentStartTimeParsed.format(formatter) + " - " + currentAppointmentEndTimeParsed.format(formatter);
-                        timeSlots.add(timeSlot);
+                        timeSlots.addSlots(timeSlot);
                         isSlotAvailable = false;
-                        break;
                     }
                 }
-                if(!isSlotAvailable){
-//                    calculateFreeSlots()
-                    throw new RuntimeException("Slot is already booked");
+                AppointmentFreeSlots availableslots = new AppointmentFreeSlots();
+                if (!isSlotAvailable) {
+                    availableslots = calculateFreeSlots(workingHoursForDate, timeSlots, providerDuration);
                 }
-                else{
-                    AppointmentSave appointmentSave = new AppointmentSave();
-                    appointmentSave.setAppointmentRequest(appointmentRequest);
-                    appointmentSave.setPatientModel(patient);
-                    appointmentSave.setProviderModel(provider);
-                    appointmentSave.setStatus(status);
-                    return appointmentSave;
-                }
+                AppointmentSave appointmentSave = new AppointmentSave();
+                appointmentSave.setAppointmentRequest(appointmentRequest);
+                appointmentSave.setPatientModel(patient);
+                appointmentSave.setProviderModel(provider);
+                appointmentSave.setStatus(status);
+                appointmentSave.setSlots(availableslots);
+                appointmentSave.setSlotAvailable(isSlotAvailable);
+                return appointmentSave;
+
             } catch (Exception exception) {
                 throw new RuntimeException("Slot is booked");
             }
         }
     }
-    public void addAppointment(@NotNull AppointmentRequest appointmentRequest) throws JsonProcessingException, ParseException {
+
+    public ResponseEntity<AppointmentFreeSlots> addAppointment(@NotNull AppointmentRequest appointmentRequest) throws JsonProcessingException, ParseException {
         Integer patientId = appointmentRequest.getPatientid();
         Integer providerId = appointmentRequest.getProviderid();
 
@@ -155,8 +169,13 @@ public class AppointmentService {
 
         AppointmentSave appointmentSave = validateAndCreateAppointment(patient, providerId, provider, appointmentRequest);
         Integer status = appointmentSave.getStatus();
-        saveToRepo(appointmentRequest, patient, provider, status);
-
+        Boolean slotAvailable = appointmentSave.getSlotAvailable();
+        AppointmentFreeSlots slots = appointmentSave.getSlots();
+        if(slotAvailable) {
+            saveToRepo(appointmentRequest, patient, provider, status);
+            return ResponseEntity.ok(slots);
+        }
+        return new ResponseEntity<AppointmentFreeSlots>(slots, HttpStatus.FORBIDDEN);
     }
 
     public AppointmentResponse getAppointments(Integer id) {
@@ -202,7 +221,7 @@ public class AppointmentService {
         appointmentRepository.save(appointmentById);
     }
 
-    public void deleteAppointment(Integer id){
+    public void deleteAppointment(Integer id) {
         Optional<AppointmentModel> appointment = appointmentRepository.findById(id);
         if (!appointment.isPresent()) {
             throw new RuntimeException("Error fetching id");

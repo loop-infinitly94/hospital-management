@@ -1,6 +1,7 @@
 package com.learning.hospitalmanagement.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.learning.hospitalmanagement.dto.AppointmentFreeSlots;
 import com.learning.hospitalmanagement.dto.AppointmentRequest;
 import com.learning.hospitalmanagement.dto.AppointmentResponse;
 import com.learning.hospitalmanagement.model.AppointmentModel;
@@ -8,6 +9,7 @@ import com.learning.hospitalmanagement.service.AppointmentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
@@ -26,8 +28,8 @@ public class AppointmentManagement {
      */
     @PostMapping("/appointment")
     @ResponseStatus(HttpStatus.CREATED)
-    public void addAppointment(@RequestBody AppointmentRequest appointmentRequest) throws ParseException, JsonProcessingException {
-        appointmentService.addAppointment(appointmentRequest);
+    public ResponseEntity<AppointmentFreeSlots>  addAppointment(@RequestBody AppointmentRequest appointmentRequest) throws ParseException, JsonProcessingException {
+        return appointmentService.addAppointment(appointmentRequest);
     }
 
     /**

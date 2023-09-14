@@ -13,4 +13,6 @@ public class AppointmentSave {
     PatientModel patientModel;
     ProviderModel providerModel;
     Integer status;
+    Boolean slotAvailable;
+    AppointmentFreeSlots slots;
 }
