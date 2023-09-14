@@ -129,11 +129,8 @@ public class AppointmentService {
                     LocalTime currentAppointmentStartTimeParsed = LocalTime.parse(currentAppointmentStartTime, formatter);
                     LocalTime currentAppointmentEndTimeParsed = currentAppointmentStartTimeParsed.plusMinutes(providerDuration);
                     //check if the appointment date is coinciding with any CONFIRMED appointments
-                    Boolean isStartTimeInRange = (appointmentTimeParsed.isAfter(currentAppointmentStartTimeParsed) && appointmentTimeParsed.isBefore(currentAppointmentEndTimeParsed));
-                    Boolean isEndTimeInRange = (appointmentDuration.isAfter(currentAppointmentStartTimeParsed) && appointmentDuration.isBefore(currentAppointmentEndTimeParsed));
-//                    Boolean isInRange = appointmentTimeParsed.plusMinutes(1).isAfter(currentAppointmentEndTimeParsed) && appointmentDuration.isBefore(currentAppointmentStartTimeParsed);
-
-                    if (isStartTimeInRange || isEndTimeInRange) {
+                    Boolean isInRange = (appointmentTimeParsed.isBefore(currentAppointmentEndTimeParsed) && appointmentDuration.isAfter(currentAppointmentStartTimeParsed));
+                    if (isInRange) {
                         String timeSlot = currentAppointmentStartTimeParsed.format(formatter) + " - " + currentAppointmentEndTimeParsed.format(formatter);
                         timeSlots.addSlots(timeSlot);
                         isSlotAvailable = false;
@@ -172,7 +169,7 @@ public class AppointmentService {
         Integer status = appointmentSave.getStatus();
         Boolean slotAvailable = appointmentSave.getSlotAvailable();
         AppointmentFreeSlots slots = appointmentSave.getSlots();
-        if(slotAvailable) {
+        if (slotAvailable) {
             saveToRepo(appointmentRequest, patient, provider, status);
             return ResponseEntity.ok(slots);
         }
